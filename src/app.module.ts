@@ -19,6 +19,8 @@ import { UserTopicsModule } from './user-topics/user-topics.module';
 import { ModuleTopicsModule } from './module-topics/module-topics.module';
 import { ContentsModule } from './contents/contents.module';
 import { RubrosModule } from './rubros/rubros.module';
+import { NftModule } from './nft/nft.module';
+import { BusinessesModule } from './businesses/businesses.module';
 
 
 @Module({
@@ -68,7 +70,11 @@ import { RubrosModule } from './rubros/rubros.module';
 
     ContentsModule,
 
-    RubrosModule
+    RubrosModule,
+
+    NftModule,
+
+    BusinessesModule
 
   ],
 })

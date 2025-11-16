@@ -10,6 +10,7 @@ import { Topic } from '../topics/entities/topic.entity';
 import { Module as ModuleEntity } from '../modules/entities/module.entity';
 import { ModuleTopic } from '../module-topics/entities/module-topic.entity';
 import { UserTopic, UserTopicStatus } from '../user-topics/entities/user-topic.entity';
+import { Business, BusinessStatus } from '../businesses/entities/business.entity';
 
 import { initialData } from './data/seed-data';
 
@@ -30,6 +31,8 @@ export class SeedService {
     private readonly moduleTopicRepository: Repository<ModuleTopic>,
     @InjectRepository( UserTopic )
     private readonly userTopicRepository: Repository<UserTopic>,
+    @InjectRepository( Business )
+    private readonly businessRepository: Repository<Business>,
   ) {}
 
   async runSeed() {
@@ -40,6 +43,7 @@ export class SeedService {
     await this.insertTopics();
     await this.insertModuleTopics();
     await this.insertUsers();
+    await this.insertBusinesses();
     await this.insertUserTopics();
     return 'SEED EXECUTED';
   }
@@ -57,6 +61,7 @@ export class SeedService {
       await this.insertTopics();
       await this.insertModuleTopics();
       await this.insertUsers();
+      await this.insertBusinesses();
       await this.insertUserTopics();
       results.push('Users seeded');
     } else {
@@ -72,6 +77,7 @@ export class SeedService {
     await this.insertModules();
     await this.insertTopics();
     await this.insertUsers();
+    await this.insertBusinesses();
     return 'FORCE SEED EXECUTED';
   }
 
@@ -140,6 +146,29 @@ export class SeedService {
       const savedUser = await this.userRepository.save(user);
       createdUsers.push(savedUser);
     }
+    // Generate additional users up to 30 total
+    const rubros = await this.rubroRepository.find();
+    const modules = await this.moduleRepository.find();
+    const currentCount = await this.userRepository.count();
+    const need = Math.max(0, 30 - currentCount);
+    for (let i = 0; i < need; i++) {
+      const idx = i + 1;
+      const name = `User${idx + 100}`;
+      const email = `user${idx + 100}@example.com`;
+      const role: Role = Role.USER;
+      const hashedPassword = bcrypt.hashSync('123456', 10);
+      const rubro = rubros.length ? rubros[idx % rubros.length] : null;
+      const module = modules.length ? modules[idx % modules.length] : null;
+      const user = this.userRepository.create({
+        name,
+        email,
+        password: hashedPassword,
+        roles: role,
+        rubroId: rubro?.id ?? null,
+        moduleId: module?.id ?? null
+      });
+      await this.userRepository.save(user);
+    }
     return createdUsers[0];
   }
 
@@ -190,5 +219,28 @@ export class SeedService {
     await this.userTopicRepository.save(relations);
   }
 
+  private async insertBusinesses() {
+    const users = await this.userRepository.find();
+    const rubros = await this.rubroRepository.find();
+    if (users.length === 0) return;
+
+    const businesses: Business[] = [];
+    users.forEach((user, index) => {
+      const rubroId = user.rubroId ?? (rubros.length ? rubros[index % rubros.length].id : null);
+      const finished = index < 8; // first 8 finished
+      const b = this.businessRepository.create({
+        name: `Negocio de ${user.name}`,
+        userId: user.id,
+        rubroId: rubroId!,
+        status: finished ? BusinessStatus.FINISHED : BusinessStatus.IN_PROGRESS,
+        isSuccessful: finished,
+        finalizedAt: finished ? new Date() : null
+      });
+      businesses.push(b);
+    });
+    if (businesses.length) {
+      await this.businessRepository.save(businesses);
+    }
+  }
 
 }

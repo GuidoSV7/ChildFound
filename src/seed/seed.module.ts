@@ -8,6 +8,7 @@ import { Topic } from '../topics/entities/topic.entity';
 import { Module as ModuleEntity } from '../modules/entities/module.entity';
 import { ModuleTopic } from '../module-topics/entities/module-topic.entity';
 import { UserTopic } from '../user-topics/entities/user-topic.entity';
+import { Business } from '../businesses/entities/business.entity';
 
 import { SeedService } from './seed.service';
 import { SeedController } from './seed.controller';
@@ -16,7 +17,7 @@ import { SeedController } from './seed.controller';
   controllers: [SeedController],
   providers: [SeedService],
   imports: [
-    TypeOrmModule.forFeature([User, Rubro, Topic, ModuleEntity, ModuleTopic, UserTopic]),
+    TypeOrmModule.forFeature([User, Rubro, Topic, ModuleEntity, ModuleTopic, UserTopic, Business]),
     AuthModule
   ]
 })

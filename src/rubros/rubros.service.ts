@@ -5,6 +5,7 @@ import { Rubro } from './entities/rubro.entity';
 import { CreateRubroDto } from './dto/create-rubro.dto';
 import { UpdateRubroDto } from './dto/update-rubro.dto';
 import { User } from 'src/auth/entities/user.entity';
+import { Business } from 'src/businesses/entities/business.entity';
 
 @Injectable()
 export class RubrosService {
@@ -13,6 +14,8 @@ export class RubrosService {
     private readonly rubroRepository: Repository<Rubro>,
     @InjectRepository(User)
     private readonly userRepository: Repository<User>,
+    @InjectRepository(Business)
+    private readonly businessRepository: Repository<Business>,
   ) {}
 
   async create(createDto: CreateRubroDto) {
@@ -25,7 +28,8 @@ export class RubrosService {
   }
 
   findAll() {
-    return this.rubroRepository.find({ relations: ['users'] });
+    // Solo rubros, sin relaciones
+    return this.rubroRepository.find();
   }
 
   async findOne(id: string) {
@@ -46,8 +50,18 @@ export class RubrosService {
     return { message: `Rubro with id ${id} deleted successfully` };
   }
 
-  getUsersByRubro(id: string) {
-    return this.userRepository.find({ where: { rubroId: id } });
+  async getUsersByRubro(id: string) {
+    const users = await this.userRepository.find({ where: { rubroId: id } });
+    const withBusinesses = await Promise.all(
+      users.map(async (u) => {
+        const businesses = await this.businessRepository.find({
+          where: { userId: u.id, rubroId: id },
+          order: { createdAt: 'DESC' },
+        });
+        return { ...u, businesses };
+      }),
+    );
+    return withBusinesses;
   }
 }
 
