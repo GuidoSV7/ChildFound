@@ -8,6 +8,7 @@ import { Repository, DataSource } from 'typeorm';
 import { CreateUserDto } from 'src/auth/dto/create-user.dto';
 import * as bcrypt from 'bcrypt';
 import { Role } from 'src/auth/enums/role.enum';
+import { Rubro } from 'src/rubros/entities/rubro.entity';
 
 @Injectable()
 export class UsersService {
@@ -16,6 +17,8 @@ export class UsersService {
   constructor(
     @InjectRepository(User)
     private readonly userRepository: Repository<User>,
+    @InjectRepository(Rubro)
+    private readonly rubroRepository: Repository<Rubro>,
     private readonly dataSource: DataSource,
   ){}
 
@@ -35,6 +38,20 @@ export class UsersService {
     } catch (error) {
       throw new BadRequestException(error.message || 'Error creating user');
     }
+  }
+
+  async setUserRubro(userId: string, rubroId: string) {
+    const user = await this.userRepository.findOne({ where: { id: userId } });
+    if (!user) {
+      throw new NotFoundException(`Usuario con ID ${userId} no encontrado`);
+    }
+    const rubro = await this.rubroRepository.findOne({ where: { id: rubroId } });
+    if (!rubro) {
+      throw new NotFoundException(`Rubro con ID ${rubroId} no encontrado`);
+    }
+    user.rubroId = rubroId;
+    await this.userRepository.save(user);
+    return { message: 'Rubro asignado correctamente', userId, rubroId };
   }
 
   findAll(paginationDto:PaginationDto) {

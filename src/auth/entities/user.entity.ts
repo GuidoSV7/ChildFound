@@ -2,6 +2,7 @@ import { BeforeInsert, BeforeUpdate, Column, Entity, PrimaryGeneratedColumn, Man
 import { Role } from '../enums/role.enum';
 import { Module } from 'src/modules/entities/module.entity';
 import { UserTopic } from 'src/user-topics/entities/user-topic.entity';
+import { Rubro } from 'src/rubros/entities/rubro.entity';
 
 @Entity('users')
 export class User {
@@ -32,10 +33,10 @@ export class User {
     })
     city?: string;
 
-    @Column('text', {
+    @Column('uuid', {
         nullable: true
     })
-    rubro?: string;
+    rubroId?: string;
 
     @Column('text', {
         nullable: true,
@@ -61,6 +62,10 @@ export class User {
 
     @OneToMany(() => UserTopic, (userTopic) => userTopic.user)
     userTopics: UserTopic[];
+
+    @ManyToOne(() => Rubro, (rubro) => rubro.users, { nullable: true })
+    @JoinColumn({ name: 'rubroId' })
+    rubro?: Rubro;
 
     @BeforeInsert()
     checkFieldsBeforeInsert() {

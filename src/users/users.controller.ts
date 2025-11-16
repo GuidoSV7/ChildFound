@@ -7,6 +7,7 @@ import { CreateUserDto } from 'src/auth/dto';
 import { ApiResponse, ApiTags } from '@nestjs/swagger';
 import { User } from 'src/auth/entities/user.entity';
 import { PaginationDto } from 'src/common/dtos/pagination.dto';
+import { SetUserRubroDto } from './dto/set-user-rubro.dto';
 
 @Controller('users')
 export class UsersController {
@@ -81,6 +82,14 @@ export class UsersController {
         @Body() updateUserDto: UpdateUserDto) 
         {
     return this.usersService.update(id, updateUserDto);
+  }
+
+  @Patch(':id/rubro')
+  assignRubro(
+    @Param('id') id: string,
+    @Body() body: SetUserRubroDto
+  ) {
+    return this.usersService.setUserRubro(id, body.rubroId);
   }
 
   @Delete(':id')

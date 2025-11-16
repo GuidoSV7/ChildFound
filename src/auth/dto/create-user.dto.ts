@@ -27,7 +27,7 @@ export class CreateUserDto {
 
     @IsString()
     @IsOptional()
-    rubro?: string;
+    rubroId?: string;
 
     @IsString()
     @IsOptional()

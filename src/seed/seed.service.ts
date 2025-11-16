@@ -5,6 +5,11 @@ import * as bcrypt from 'bcrypt';
 
 import { User } from '../auth/entities/user.entity';
 import { Role } from '../auth/enums/role.enum';
+import { Rubro } from '../rubros/entities/rubro.entity';
+import { Topic } from '../topics/entities/topic.entity';
+import { Module as ModuleEntity } from '../modules/entities/module.entity';
+import { ModuleTopic } from '../module-topics/entities/module-topic.entity';
+import { UserTopic, UserTopicStatus } from '../user-topics/entities/user-topic.entity';
 
 import { initialData } from './data/seed-data';
 
@@ -15,13 +20,27 @@ export class SeedService {
   constructor(
     @InjectRepository( User )
     private readonly userRepository: Repository<User>,
+    @InjectRepository( Rubro )
+    private readonly rubroRepository: Repository<Rubro>,
+    @InjectRepository( Topic )
+    private readonly topicRepository: Repository<Topic>,
+    @InjectRepository( ModuleEntity )
+    private readonly moduleRepository: Repository<ModuleEntity>,
+    @InjectRepository( ModuleTopic )
+    private readonly moduleTopicRepository: Repository<ModuleTopic>,
+    @InjectRepository( UserTopic )
+    private readonly userTopicRepository: Repository<UserTopic>,
   ) {}
 
   async runSeed() {
     
     await this.deleteTables();
-
-    const adminUser = await this.insertUsers();
+    await this.insertRubros();
+    await this.insertModules();
+    await this.insertTopics();
+    await this.insertModuleTopics();
+    await this.insertUsers();
+    await this.insertUserTopics();
     return 'SEED EXECUTED';
   }
 
@@ -33,7 +52,12 @@ export class SeedService {
     // Verificar y seedear Users
     const existingUsers = await this.userRepository.count();
     if (existingUsers === 0) {
+      await this.insertRubros();
+      await this.insertModules();
+      await this.insertTopics();
+      await this.insertModuleTopics();
       await this.insertUsers();
+      await this.insertUserTopics();
       results.push('Users seeded');
     } else {
       results.push('Users already exist');
@@ -44,9 +68,10 @@ export class SeedService {
   async forceSeed() {
     
     await this.deleteTables();
-
-
-    const adminUser = await this.insertUsers();
+    await this.insertRubros();
+    await this.insertModules();
+    await this.insertTopics();
+    await this.insertUsers();
     return 'FORCE SEED EXECUTED';
   }
 
@@ -54,11 +79,35 @@ export class SeedService {
     
   
     
-    // Con @ChildEntity, todas las entidades se guardan en la misma tabla 'users'
-    // Solo necesitamos limpiar la tabla principal
+    await this.userTopicRepository.delete({});
+    await this.moduleTopicRepository.delete({});
+    await this.topicRepository.delete({});
+    await this.moduleRepository.delete({});
+    await this.rubroRepository.delete({});
     await this.userRepository.delete({});
   }
 
+
+  private async insertRubros() {
+    for (const r of initialData.rubros) {
+      const rubro = this.rubroRepository.create({ name: r.name });
+      await this.rubroRepository.save(rubro);
+    }
+  }
+
+  private async insertModules() {
+    for (const m of initialData.modules) {
+      const module = this.moduleRepository.create({ name: m.name });
+      await this.moduleRepository.save(module);
+    }
+  }
+
+  private async insertTopics() {
+    for (const t of initialData.topics) {
+      const topic = this.topicRepository.create({ name: t.name });
+      await this.topicRepository.save(topic);
+    }
+  }
 
   private async insertUsers() {
     const createdUsers = [];
@@ -75,17 +124,70 @@ export class SeedService {
         ? userData.password 
         : bcrypt.hashSync(userData.password, 10);
 
+      // Buscar rubro y módulo por nombre si se proporcionan
+      const rubro = userData.rubroName ? await this.rubroRepository.findOne({ where: { name: userData.rubroName } }) : null;
+      const module = userData.moduleName ? await this.moduleRepository.findOne({ where: { name: userData.moduleName } }) : null;
+
       const user = this.userRepository.create({
         name: userData.userName,
         email: userData.email,
         password: hashedPassword,
-        roles: role
+        roles: role,
+        rubroId: rubro?.id ?? null,
+        moduleId: module?.id ?? null
       });
 
       const savedUser = await this.userRepository.save(user);
       createdUsers.push(savedUser);
     }
     return createdUsers[0];
+  }
+
+  private async insertModuleTopics() {
+    const modules = await this.moduleRepository.find();
+    const topics = await this.topicRepository.find();
+    if (modules.length === 0 || topics.length === 0) return;
+
+    const relations: ModuleTopic[] = [];
+    topics.forEach((topic, idx) => {
+      const mod = modules[idx % modules.length];
+      const rel = this.moduleTopicRepository.create({
+        moduleId: mod.id,
+        topicId: topic.id,
+      });
+      relations.push(rel);
+    });
+    await this.moduleTopicRepository.save(relations);
+  }
+
+  private async insertUserTopics() {
+    const users = await this.userRepository.find();
+    const topics = await this.topicRepository.find();
+    if (users.length === 0 || topics.length === 0) return;
+
+    const pickStatus = (p: number): UserTopicStatus => {
+      if (p <= 0) return UserTopicStatus.PENDING;
+      if (p >= 100) return UserTopicStatus.COMPLETED;
+      return UserTopicStatus.IN_PROGRESS;
+    };
+
+    const relations: UserTopic[] = [];
+    users.forEach((user, uIdx) => {
+      const first = topics[uIdx % topics.length];
+      const second = topics[(uIdx + 1) % topics.length];
+      const progresses = [0, 30, 60, 100];
+      [first, second].forEach((t, i) => {
+        const progress = progresses[(uIdx + i) % progresses.length];
+        const rel = this.userTopicRepository.create({
+          userId: user.id,
+          topicId: t.id,
+          progressPercentage: progress,
+          status: pickStatus(progress),
+        });
+        relations.push(rel);
+      });
+    });
+    await this.userTopicRepository.save(relations);
   }
 
 
