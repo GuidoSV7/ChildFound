@@ -1,18 +1,10 @@
-import { Controller, Get, Post, Body, UseGuards, Req, Headers } from '@nestjs/common';
-import { AuthGuard } from '@nestjs/passport';
-import { ApiTags } from '@nestjs/swagger';
-
-import { IncomingHttpHeaders } from 'http';
+import { Controller, Get, Post, Body, Param } from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 
 import { AuthService } from './auth.service';
-import { RawHeaders, GetUser, Auth } from './decorators';
-import { RoleProtected } from './decorators/role-protected.decorator';
 
 import { CreateUserDto, LoginUserDto } from './dto';
 import { SetPasswordDto } from './dto/set-password.dto';
-import { User } from './entities/user.entity';
-import { UserRoleGuard } from './guards/user-role.guard';
-import { ValidRoles } from './interfaces';
 
 @ApiTags('Auth')
 @Controller('auth')
@@ -22,87 +14,40 @@ export class AuthController {
   ) {}
 
   @Post('register')
+  @ApiOperation({ summary: 'Register a new user' })
+  @ApiResponse({ status: 201, description: 'User created successfully' })
+  @ApiResponse({ status: 400, description: 'Bad Request' })
   createUser(@Body() createUserDto: CreateUserDto ) {
     return this.authService.create( createUserDto );
   }
 
   @Post('login')
+  @ApiOperation({ summary: 'Login user' })
+  @ApiResponse({ status: 200, description: 'Login successful' })
+  @ApiResponse({ status: 401, description: 'Invalid credentials' })
   loginUser(@Body() loginUserDto: LoginUserDto ) {
     return this.authService.login( loginUserDto );
   }
 
-  @Post('verify-password')
-  @UseGuards(AuthGuard())
+  @Post('verify-password/:userId')
   async verifyPassword(
-    @GetUser() user: User,
+    @Param('userId') userId: string,
     @Body('password') password: string    
   ) {
-    const isValid = await this.authService.verifyPassword(user.id, password);
+    const isValid = await this.authService.verifyPassword(userId, password);
     return { success: isValid };
   }
 
-  @Post('set-password')
-  @UseGuards(AuthGuard())
+  @Post('set-password/:userId')
   async setPassword(
-    @GetUser() user: User,
+    @Param('userId') userId: string,
     @Body() setPasswordDto: SetPasswordDto
   ) {
-    return this.authService.setPassword(user.id, setPasswordDto);
+    return this.authService.setPassword(userId, setPasswordDto);
   }
 
-  @Get('check-password')
-  @UseGuards(AuthGuard())
-  async checkHasPassword(@GetUser() user: User) {
-    return this.authService.checkHasPassword(user.id);
-  }
-
-  @Get('refresh-token')
-  @UseGuards(AuthGuard())
-  refreshToken(@GetUser() user: User) {
-    return this.authService.checkAuthStatus(user);
-  }
-
-  @Get('private')
-  @UseGuards( AuthGuard() )
-  testingPrivateRoute(
-    @Req() request: Express.Request,
-    @GetUser() user: User,
-    @GetUser('email') userEmail: string,
-    
-    @RawHeaders() rawHeaders: string[],
-    @Headers() headers: IncomingHttpHeaders,
-  ) {
-    return {
-      ok: true,
-      message: 'Hola Mundo Private',
-      user,
-      userEmail,
-      rawHeaders,
-      headers
-    }
-  }
-
-  @Get('private2')
-  @RoleProtected( ValidRoles.admin )
-  @UseGuards( AuthGuard(), UserRoleGuard )
-  privateRoute2(
-    @GetUser() user: User
-  ) {
-    return {
-      ok: true,
-      user
-    }
-  }
-
-
-  @Get('private3')
-  @Auth( ValidRoles.admin )
-  privateRoute3(
-    @GetUser() user: User
-  ) {
-    return {
-      ok: true,
-      user
-    }
+  @Get('check-password/:userId')
+  async checkHasPassword(@Param('userId') userId: string) {
+    return this.authService.checkHasPassword(userId);
   }
 }

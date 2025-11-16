@@ -17,6 +17,7 @@ import { ModulesModule } from './modules/modules.module';
 import { TopicsModule } from './topics/topics.module';
 import { UserTopicsModule } from './user-topics/user-topics.module';
 import { ModuleTopicsModule } from './module-topics/module-topics.module';
+import { ContentsModule } from './contents/contents.module';
 
 
 @Module({
@@ -62,7 +63,9 @@ import { ModuleTopicsModule } from './module-topics/module-topics.module';
 
     UserTopicsModule,
 
-    ModuleTopicsModule
+    ModuleTopicsModule,
+
+    ContentsModule
 
   ],
 })

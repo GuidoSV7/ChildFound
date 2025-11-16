@@ -1,13 +1,12 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, Query, UseGuards, Request, BadRequestException } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, Query, BadRequestException } from '@nestjs/common';
 import { UsersService } from './users.service';
 
 import { UpdateUserDto } from './dto/update-user.dto';
 import { UpdateRoleDto } from './dto/update-role.dto';
 import { CreateUserDto } from 'src/auth/dto';
-import { ApiResponse, ApiTags, ApiBearerAuth } from '@nestjs/swagger';
+import { ApiResponse, ApiTags } from '@nestjs/swagger';
 import { User } from 'src/auth/entities/user.entity';
 import { PaginationDto } from 'src/common/dtos/pagination.dto';
-import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
 
 @Controller('users')
 export class UsersController {

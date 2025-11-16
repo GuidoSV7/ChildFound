@@ -2,6 +2,12 @@ import { Entity, PrimaryGeneratedColumn, ManyToOne, JoinColumn, Column, Unique }
 import { User } from 'src/auth/entities/user.entity';
 import { Topic } from 'src/topics/entities/topic.entity';
 
+export enum UserTopicStatus {
+  PENDING = 'pending',
+  IN_PROGRESS = 'in_progress',
+  COMPLETED = 'completed',
+}
+
 @Entity('user_topics')
 @Unique(['userId', 'topicId'])
 export class UserTopic {
@@ -13,6 +19,12 @@ export class UserTopic {
 
   @Column('uuid')
   topicId: string;
+
+  @Column('int', { default: 0 })
+  progressPercentage: number;
+
+  @Column('text', { default: UserTopicStatus.PENDING })
+  status: UserTopicStatus;
 
   @ManyToOne(() => User, (user) => user.userTopics, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'userId' })

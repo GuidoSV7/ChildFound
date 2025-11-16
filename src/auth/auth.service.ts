@@ -1,5 +1,4 @@
 import { BadRequestException, Injectable, InternalServerErrorException, UnauthorizedException } from '@nestjs/common';
-import { JwtService } from '@nestjs/jwt';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import * as bcrypt from 'bcrypt';
@@ -7,15 +6,13 @@ import * as bcrypt from 'bcrypt';
 import { User } from './entities/user.entity';
 import { LoginUserDto, CreateUserDto } from './dto';
 import { SetPasswordDto } from './dto/set-password.dto';
-import { JwtPayload } from './interfaces/jwt-payload.interface';
 import { Role } from './enums/role.enum';
 
 @Injectable()
 export class AuthService {
   constructor(
     @InjectRepository(User)
-    private readonly userRepository: Repository<User>,
-    private readonly jwtService: JwtService
+    private readonly userRepository: Repository<User>
   ) {}
 
   async create(createUserDto: CreateUserDto) {
@@ -40,14 +37,7 @@ export class AuthService {
       // Remove password from response
       const { password: _, ...userWithoutPassword } = savedUser;
 
-      return {
-        ...userWithoutPassword,
-        token: this.getJwtToken({ 
-          id: savedUser.id, 
-          sub: savedUser.id, 
-          roles: savedUser.roles 
-        })
-      };
+      return userWithoutPassword;
 
     } catch (error) {
       console.error('Error creating user:', error);
@@ -84,32 +74,7 @@ export class AuthService {
     // Remove password from user data
     const { password: _, ...userWithoutPassword } = user;
   
-    return {
-      ...userWithoutPassword,
-      token: this.getJwtToken({ 
-        id: user.id, 
-        sub: user.id, 
-        roles: user.roles 
-      })
-    };
-  }
-
-  private getJwtToken(payload: JwtPayload) {
-    const token = this.jwtService.sign(payload, {
-      expiresIn: '1d' // Token válido por 1 día
-    });
-    return token;
-  }
-
-  async checkAuthStatus(user: User) {
-    return {
-      ...user,
-      token: this.getJwtToken({ 
-        id: user.id, 
-        sub: user.id, 
-        roles: user.roles 
-      })
-    };
+    return userWithoutPassword;
   }
 
   async verifyPassword(userId: string, password: string): Promise<boolean> {

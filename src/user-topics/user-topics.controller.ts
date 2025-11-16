@@ -1,7 +1,8 @@
-import { Controller, Get, Post, Body, Param, Delete, Query } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, Delete, Query, Patch } from '@nestjs/common';
 import { UserTopicsService } from './user-topics.service';
 import { CreateUserTopicDto } from './dto/create-user-topic.dto';
 import { ApiTags, ApiResponse, ApiOperation } from '@nestjs/swagger';
+import { UserTopicStatus } from './entities/user-topic.entity';
 
 @ApiTags('User Topics')
 @Controller('user-topics')
@@ -59,6 +60,17 @@ export class UserTopicsController {
     @Param('topicId') topicId: string
   ) {
     return this.userTopicsService.removeByUserAndTopic(userId, topicId);
+  }
+
+  @Patch(':id/progress')
+  @ApiOperation({ summary: 'Update progress and status for a user-topic' })
+  @ApiResponse({ status: 200, description: 'Progress updated successfully' })
+  updateProgress(
+    @Param('id') id: string,
+    @Body('progressPercentage') progressPercentage: number,
+    @Body('status') status?: UserTopicStatus
+  ) {
+    return this.userTopicsService.updateProgress(id, Number(progressPercentage), status);
   }
 }
 

@@ -1,9 +1,9 @@
-import { Controller, Get, Post, Req, Res, UseGuards, Body, ValidationPipe, HttpException, HttpStatus } from '@nestjs/common';
+import { Controller, Get, Post, Req, Res, UseGuards, Body, ValidationPipe, HttpException, HttpStatus, Param } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { Request, Response } from 'express';
 import { ConfigService } from '@nestjs/config';
 import { GoogleAuthService } from './google-auth.service';
-import { GoogleAuthDto, GoogleAuthResponseDto } from './dto/google-auth.dto';
+import { GoogleAuthDto } from './dto/google-auth.dto';
 
 @Controller('auth/google')
 export class GoogleAuthController {
@@ -13,7 +13,7 @@ export class GoogleAuthController {
   ) {}
 
   @Post()
-  async googleAuth(@Body(ValidationPipe) googleAuthDto: GoogleAuthDto): Promise<GoogleAuthResponseDto> {
+  async googleAuth(@Body(ValidationPipe) googleAuthDto: GoogleAuthDto) {
     try {
       const result = await this.googleAuthService.authenticateWithGoogle(googleAuthDto);
       
@@ -21,8 +21,8 @@ export class GoogleAuthController {
         success: true,
         data: result,
         message: result.isNewUser 
-          ? 'Usuario creado e iniciado sesión exitosamente' 
-          : 'Inicio de sesión exitoso'
+          ? 'Usuario creado exitosamente' 
+          : 'Usuario encontrado exitosamente'
       };
     } catch (error) {
       if (error instanceof HttpException) {
@@ -57,8 +57,8 @@ export class GoogleAuthController {
       // Get frontend URL from environment variables
       const frontendUrl = this.configService.get<string>('FRONTEND_URL');
       
-      // Redirect to frontend with token
-      res.redirect(`${frontendUrl}/auth/google/callback?token=${result.token}`);
+      // Redirect to frontend with user id
+      res.redirect(`${frontendUrl}/auth/google/callback?userId=${result.id}`);
     } catch (error) {
       console.error('Google auth callback error:', error);
       const frontendUrl = this.configService.get<string>('FRONTEND_URL');
@@ -66,10 +66,9 @@ export class GoogleAuthController {
     }
   }
 
-  @Get('profile')
-  @UseGuards(AuthGuard('jwt'))
-  async getProfile(@Req() req) {
+  @Get('profile/:userId')
+  async getProfile(@Param('userId') userId: string) {
     // This endpoint can be used to get user profile after Google auth
-    return req.user;
+    return this.googleAuthService.getUserProfile(userId);
   }
 }

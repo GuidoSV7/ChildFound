@@ -1,7 +1,7 @@
 import { Injectable, NotFoundException, BadRequestException, ConflictException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { UserTopic } from './entities/user-topic.entity';
+import { UserTopic, UserTopicStatus } from './entities/user-topic.entity';
 import { CreateUserTopicDto } from './dto/create-user-topic.dto';
 import { User } from 'src/auth/entities/user.entity';
 import { Topic } from 'src/topics/entities/topic.entity';
@@ -18,7 +18,7 @@ export class UserTopicsService {
   ) {}
 
   async create(createUserTopicDto: CreateUserTopicDto) {
-    const { userId, topicId } = createUserTopicDto;
+    const { userId, topicId, progressPercentage = 0, status = UserTopicStatus.PENDING } = createUserTopicDto;
 
     // Verificar que el usuario existe
     const user = await this.userRepository.findOne({ where: { id: userId } });
@@ -41,7 +41,31 @@ export class UserTopicsService {
       throw new ConflictException('User-Topic relationship already exists');
     }
 
-    const userTopic = this.userTopicRepository.create({ userId, topicId });
+    const userTopic = this.userTopicRepository.create({ userId, topicId, progressPercentage, status });
+    return await this.userTopicRepository.save(userTopic);
+  }
+
+  async updateProgress(id: string, progressPercentage: number, status?: UserTopicStatus) {
+    if (progressPercentage < 0 || progressPercentage > 100) {
+      throw new BadRequestException('progressPercentage debe estar entre 0 y 100');
+    }
+
+    const userTopic = await this.userTopicRepository.findOne({ where: { id } });
+    if (!userTopic) {
+      throw new NotFoundException(`UserTopic with id ${id} not found`);
+    }
+
+    userTopic.progressPercentage = progressPercentage;
+
+    if (typeof status !== 'undefined') {
+      userTopic.status = status;
+    } else {
+      // Inferir estado por progreso si no se envía
+      if (progressPercentage <= 0) userTopic.status = UserTopicStatus.PENDING;
+      else if (progressPercentage >= 100) userTopic.status = UserTopicStatus.COMPLETED;
+      else userTopic.status = UserTopicStatus.IN_PROGRESS;
+    }
+
     return await this.userTopicRepository.save(userTopic);
   }
 

@@ -24,7 +24,6 @@ export class GoogleAuthResponseDto {
     id: string;
     email: string;
     roles: string;
-    token: string;
     isNewUser: boolean;
     name: string;
   };

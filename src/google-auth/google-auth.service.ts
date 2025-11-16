@@ -1,19 +1,16 @@
 import { Injectable, BadRequestException, InternalServerErrorException, ConflictException, HttpException } from '@nestjs/common';
-import { JwtService } from '@nestjs/jwt';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 
 import { User } from '../auth/entities/user.entity';
 import { Role } from '../auth/enums/role.enum';
-import { JwtPayload } from '../auth/interfaces/jwt-payload.interface';
 import { GoogleAuthDto } from './dto/google-auth.dto';
 
 @Injectable()
 export class GoogleAuthService {
   constructor(
     @InjectRepository(User)
-    private readonly userRepository: Repository<User>,
-    private readonly jwtService: JwtService,
+    private readonly userRepository: Repository<User>
   ) {}
 
   async validateGoogleUser(googleUser: any) {
@@ -41,14 +38,7 @@ export class GoogleAuthService {
         // Remove password from response
         const { password: _, ...userWithoutPassword } = existingUser;
 
-        return {
-          ...userWithoutPassword,
-          token: this.getJwtToken({ 
-            id: existingUser.id, 
-            sub: existingUser.id, 
-            roles: existingUser.roles 
-          })
-        };
+        return userWithoutPassword;
       }
 
       // Create new user
@@ -65,14 +55,7 @@ export class GoogleAuthService {
       // Remove password from response
       const { password: _, ...userWithoutPassword } = savedUser;
 
-      return {
-        ...userWithoutPassword,
-        token: this.getJwtToken({ 
-          id: savedUser.id, 
-          sub: savedUser.id, 
-          roles: savedUser.roles 
-        })
-      };
+      return userWithoutPassword;
 
     } catch (error) {
       console.error('Error validating Google user:', error);
@@ -105,14 +88,7 @@ export class GoogleAuthService {
         }
 
         const { password: _, ...userWithoutPassword } = user;
-        return {
-          ...userWithoutPassword,
-          token: this.getJwtToken({ 
-            id: user.id, 
-            sub: user.id, 
-            roles: user.roles 
-          })
-        };
+        return userWithoutPassword;
       }
 
       // Create new user
@@ -127,14 +103,7 @@ export class GoogleAuthService {
       const savedUser = await this.userRepository.save(newUser);
 
       const { password: _, ...userWithoutPassword } = savedUser;
-      return {
-        ...userWithoutPassword,
-        token: this.getJwtToken({ 
-          id: savedUser.id, 
-          sub: savedUser.id, 
-          roles: savedUser.roles 
-        })
-      };
+      return userWithoutPassword;
 
     } catch (error) {
       console.error('Error finding or creating user:', error);
@@ -142,22 +111,13 @@ export class GoogleAuthService {
     }
   }
 
-  private getJwtToken(payload: JwtPayload) {
-    const token = this.jwtService.sign(payload, {
-      expiresIn: '1d' // Token válido por 1 día
-    });
-    return token;
-  }
-
-  async checkAuthStatus(user: User) {
-    return {
-      ...user,
-      token: this.getJwtToken({ 
-        id: user.id, 
-        sub: user.id, 
-        roles: user.roles 
-      })
-    };
+  async getUserProfile(userId: string) {
+    const user = await this.userRepository.findOne({ where: { id: userId } });
+    if (!user) {
+      throw new BadRequestException('Usuario no encontrado');
+    }
+    const { password: _, ...userWithoutPassword } = user;
+    return userWithoutPassword;
   }
 
   async authenticateWithGoogle(googleAuthDto: GoogleAuthDto) {
@@ -219,16 +179,8 @@ export class GoogleAuthService {
         const { password: _, ...userWithoutPassword } = existingUser;
 
         return {
-          id: existingUser.id,
-          email: existingUser.email,
-          roles: existingUser.roles,
-          token: this.getJwtToken({ 
-            id: existingUser.id, 
-            sub: existingUser.id, 
-            roles: existingUser.roles 
-          }),
-          isNewUser: false,
-          name: existingUser.name
+          ...userWithoutPassword,
+          isNewUser: false
         };
       }
 
@@ -246,16 +198,8 @@ export class GoogleAuthService {
       const { password: _, ...userWithoutPassword } = savedUser;
 
       return {
-        id: savedUser.id,
-        email: savedUser.email,
-        roles: savedUser.roles,
-        token: this.getJwtToken({ 
-          id: savedUser.id, 
-          sub: savedUser.id, 
-          roles: savedUser.roles 
-        }),
-        isNewUser: true,
-        name: savedUser.name
+        ...userWithoutPassword,
+        isNewUser: true
       };
 
     } catch (error) {
