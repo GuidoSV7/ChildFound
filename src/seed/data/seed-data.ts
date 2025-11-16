@@ -37,12 +37,14 @@ interface SeedPaymentMethodDisplay {
 interface SeedTopic { name: string; }
 interface SeedModule { name: string; }
 interface SeedRubro { name: string; }
+interface SeedFase { name: string; }
 
 interface SeedData {
     users: SeedUser[];
     topics: SeedTopic[];
     modules: SeedModule[];
     rubros: SeedRubro[];
+    fases: SeedFase[];
     paymentMethods: SeedPaymentMethod[];
     paymentMethodsDisplay: SeedPaymentMethodDisplay[];
     systemConfig: SeedSystemConfig[];
@@ -123,6 +125,10 @@ export const initialData: SeedData = {
         { name: 'Modulo1' },
         { name: 'Modulo2' },
         { name: 'Modulo3' }
+    ],
+    fases: [
+        { name: 'pre-incubacion' },
+        { name: 'incubacion' }
     ],
     users: [
         { email: 'usuario1@gmail.com', userName: 'Usuario1', password: '123456', roles: 'user', rubroName: 'Tecnologia', moduleName: 'Modulo1' },

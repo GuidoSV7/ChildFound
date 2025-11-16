@@ -9,8 +9,9 @@ import { Rubro } from '../rubros/entities/rubro.entity';
 import { Topic } from '../topics/entities/topic.entity';
 import { Module as ModuleEntity } from '../modules/entities/module.entity';
 import { ModuleTopic } from '../module-topics/entities/module-topic.entity';
-import { UserTopic, UserTopicStatus } from '../user-topics/entities/user-topic.entity';
 import { Business, BusinessStatus } from '../businesses/entities/business.entity';
+import { Fase } from '../fases/entities/fase.entity';
+import { Certification, CertificationStatus } from '../certifications/entities/certification.entity';
 
 import { initialData } from './data/seed-data';
 
@@ -29,22 +30,25 @@ export class SeedService {
     private readonly moduleRepository: Repository<ModuleEntity>,
     @InjectRepository( ModuleTopic )
     private readonly moduleTopicRepository: Repository<ModuleTopic>,
-    @InjectRepository( UserTopic )
-    private readonly userTopicRepository: Repository<UserTopic>,
+    @InjectRepository( Certification )
+    private readonly certificationRepository: Repository<Certification>,
     @InjectRepository( Business )
     private readonly businessRepository: Repository<Business>,
+    @InjectRepository( Fase )
+    private readonly faseRepository: Repository<Fase>,
   ) {}
 
   async runSeed() {
     
     await this.deleteTables();
     await this.insertRubros();
+    await this.insertFases();
     await this.insertModules();
     await this.insertTopics();
     await this.insertModuleTopics();
     await this.insertUsers();
     await this.insertBusinesses();
-    await this.insertUserTopics();
+    await this.insertCertifications();
     return 'SEED EXECUTED';
   }
 
@@ -57,12 +61,13 @@ export class SeedService {
     const existingUsers = await this.userRepository.count();
     if (existingUsers === 0) {
       await this.insertRubros();
+      await this.insertFases();
       await this.insertModules();
       await this.insertTopics();
       await this.insertModuleTopics();
       await this.insertUsers();
       await this.insertBusinesses();
-      await this.insertUserTopics();
+      await this.insertCertifications();
       results.push('Users seeded');
     } else {
       results.push('Users already exist');
@@ -74,6 +79,7 @@ export class SeedService {
     
     await this.deleteTables();
     await this.insertRubros();
+    await this.insertFases();
     await this.insertModules();
     await this.insertTopics();
     await this.insertUsers();
@@ -85,11 +91,12 @@ export class SeedService {
     
   
     
-    await this.userTopicRepository.delete({});
+    await this.certificationRepository.delete({});
     await this.moduleTopicRepository.delete({});
     await this.topicRepository.delete({});
     await this.moduleRepository.delete({});
     await this.rubroRepository.delete({});
+    await this.faseRepository.delete({});
     await this.userRepository.delete({});
   }
 
@@ -102,8 +109,10 @@ export class SeedService {
   }
 
   private async insertModules() {
-    for (const m of initialData.modules) {
-      const module = this.moduleRepository.create({ name: m.name });
+    const fases = await this.faseRepository.find();
+    for (const [idx, m] of initialData.modules.entries()) {
+      const fase = fases.length ? fases[idx % fases.length] : null;
+      const module = this.moduleRepository.create({ name: m.name, faseId: fase?.id ?? null });
       await this.moduleRepository.save(module);
     }
   }
@@ -112,6 +121,16 @@ export class SeedService {
     for (const t of initialData.topics) {
       const topic = this.topicRepository.create({ name: t.name });
       await this.topicRepository.save(topic);
+    }
+  }
+
+  private async insertFases() {
+    for (const f of initialData.fases) {
+      const exists = await this.faseRepository.findOne({ where: { name: f.name } });
+      if (!exists) {
+        const fase = this.faseRepository.create({ name: f.name });
+        await this.faseRepository.save(fase);
+      }
     }
   }
 
@@ -189,34 +208,37 @@ export class SeedService {
     await this.moduleTopicRepository.save(relations);
   }
 
-  private async insertUserTopics() {
+  // insertUserTopics removed; replaced by insertCertifications
+
+  private async insertCertifications() {
     const users = await this.userRepository.find();
     const topics = await this.topicRepository.find();
     if (users.length === 0 || topics.length === 0) return;
 
-    const pickStatus = (p: number): UserTopicStatus => {
-      if (p <= 0) return UserTopicStatus.PENDING;
-      if (p >= 100) return UserTopicStatus.COMPLETED;
-      return UserTopicStatus.IN_PROGRESS;
+    const pickStatus = (p: number): CertificationStatus => {
+      if (p <= 0) return CertificationStatus.PENDING;
+      if (p >= 100) return CertificationStatus.COMPLETED;
+      return CertificationStatus.IN_PROGRESS;
     };
 
-    const relations: UserTopic[] = [];
+    const relations: Certification[] = [];
     users.forEach((user, uIdx) => {
       const first = topics[uIdx % topics.length];
       const second = topics[(uIdx + 1) % topics.length];
       const progresses = [0, 30, 60, 100];
       [first, second].forEach((t, i) => {
         const progress = progresses[(uIdx + i) % progresses.length];
-        const rel = this.userTopicRepository.create({
+        const rel = this.certificationRepository.create({
           userId: user.id,
           topicId: t.id,
           progressPercentage: progress,
           status: pickStatus(progress),
+          urlImage: null,
         });
         relations.push(rel);
       });
     });
-    await this.userTopicRepository.save(relations);
+    await this.certificationRepository.save(relations);
   }
 
   private async insertBusinesses() {

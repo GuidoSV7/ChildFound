@@ -15,12 +15,13 @@ import { GoogleAuthModule } from './google-auth/google-auth.module';
 import { UsersModule } from './users/users.module';
 import { ModulesModule } from './modules/modules.module';
 import { TopicsModule } from './topics/topics.module';
-import { UserTopicsModule } from './user-topics/user-topics.module';
 import { ModuleTopicsModule } from './module-topics/module-topics.module';
 import { ContentsModule } from './contents/contents.module';
 import { RubrosModule } from './rubros/rubros.module';
 import { NftModule } from './nft/nft.module';
+import { FasesModule } from './fases/fases.module';
 import { BusinessesModule } from './businesses/businesses.module';
+import { CertificationsModule } from './certifications/certifications.module';
 
 
 @Module({
@@ -64,8 +65,6 @@ import { BusinessesModule } from './businesses/businesses.module';
 
     TopicsModule,
 
-    UserTopicsModule,
-
     ModuleTopicsModule,
 
     ContentsModule,
@@ -74,7 +73,11 @@ import { BusinessesModule } from './businesses/businesses.module';
 
     NftModule,
 
-    BusinessesModule
+    FasesModule,
+
+    BusinessesModule,
+
+    CertificationsModule
 
   ],
 })

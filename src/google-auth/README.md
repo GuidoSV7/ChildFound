@@ -61,6 +61,21 @@ Este módulo proporciona funcionalidad de autenticación con Google OAuth 2.0 pa
 }
 ```
 
+### 1.1. [POST] /api/auth/google/mobile
+**Descripción:** Autenticación móvil usando Google ID Token (Android/iOS)
+
+**Headers:**
+- Content-Type: application/json
+
+**Body:**
+```json
+{
+  "idToken": "eyJhbGciOiJSUzI1NiIsImtpZCI6I..."
+}
+```
+
+El backend verifica el `idToken` con Google (`tokeninfo`), valida la audiencia con `GOOGLE_CLIENT_ID`, comprueba `email_verified`, y crea o actualiza el usuario (`googleId = sub`). Respuesta igual al endpoint 1, con `isNewUser` según corresponda.
+
 ### 2. [GET] /api/auth/google
 **Descripción:** Inicia el flujo de OAuth tradicional de Google
 

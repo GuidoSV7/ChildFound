@@ -1,7 +1,7 @@
 import { BeforeInsert, BeforeUpdate, Column, Entity, PrimaryGeneratedColumn, ManyToOne, JoinColumn, OneToMany } from 'typeorm';
 import { Role } from '../enums/role.enum';
 import { Module } from 'src/modules/entities/module.entity';
-import { UserTopic } from 'src/user-topics/entities/user-topic.entity';
+import { Certification } from 'src/certifications/entities/certification.entity';
 import { Rubro } from 'src/rubros/entities/rubro.entity';
 
 @Entity('users')
@@ -44,6 +44,12 @@ export class User {
     })
     googleId?: string;
 
+    @Column('text', {
+        nullable: true,
+        unique: true
+    })
+    facebookId?: string;
+
     @Column('uuid', {
         nullable: true
     })
@@ -60,9 +66,9 @@ export class User {
     @JoinColumn({ name: 'moduleId' })
     module?: Module;
 
-    @OneToMany(() => UserTopic, (userTopic) => userTopic.user)
-    userTopics: UserTopic[];
 
+    @OneToMany(() => Certification, (cert) => cert.user)
+    certifications: Certification[];
     @ManyToOne(() => Rubro, (rubro) => rubro.users, { nullable: true })
     @JoinColumn({ name: 'rubroId' })
     rubro?: Rubro;

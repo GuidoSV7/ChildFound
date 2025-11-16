@@ -1,16 +1,20 @@
-import { Injectable, BadRequestException, InternalServerErrorException, ConflictException, HttpException } from '@nestjs/common';
+import { Injectable, BadRequestException, InternalServerErrorException, ConflictException, HttpException, Inject, UnauthorizedException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
+import { ConfigType } from '@nestjs/config';
 
 import { User } from '../auth/entities/user.entity';
 import { Role } from '../auth/enums/role.enum';
 import { GoogleAuthDto } from './dto/google-auth.dto';
+import googleOauthConfig from './google-oauth.config';
 
 @Injectable()
 export class GoogleAuthService {
   constructor(
     @InjectRepository(User)
-    private readonly userRepository: Repository<User>
+    private readonly userRepository: Repository<User>,
+    @Inject(googleOauthConfig.KEY)
+    private readonly googleConfiguration: ConfigType<typeof googleOauthConfig>,
   ) {}
 
   async validateGoogleUser(googleUser: any) {
@@ -60,6 +64,89 @@ export class GoogleAuthService {
     } catch (error) {
       console.error('Error validating Google user:', error);
       throw new InternalServerErrorException('Error processing Google authentication');
+    }
+  }
+
+  /**
+   * Mobile: verify Google ID Token and find/create user
+   */
+  async authenticateWithGoogleIdToken(idToken: string) {
+    try {
+      if (!idToken || idToken.trim() === '') {
+        throw new BadRequestException('El idToken de Google es requerido');
+      }
+
+      // Verify token with Google
+      const tokenInfoResponse = await fetch(`https://oauth2.googleapis.com/tokeninfo?id_token=${encodeURIComponent(idToken)}`);
+      if (!tokenInfoResponse.ok) {
+        throw new UnauthorizedException('idToken de Google inválido');
+      }
+      const tokenInfo: any = await tokenInfoResponse.json();
+
+      const audience = tokenInfo.aud as string | undefined;
+      const email = tokenInfo.email as string | undefined;
+      const emailVerified = tokenInfo.email_verified === 'true' || tokenInfo.email_verified === true;
+      const googleId = tokenInfo.sub as string | undefined;
+      const name = (tokenInfo.name as string | undefined) ?? '';
+
+      // Validate audience matches our client ID
+      if (!audience || audience !== this.googleConfiguration.clientID) {
+        throw new UnauthorizedException('Audiencia del token inválida');
+      }
+      if (!email || !emailVerified) {
+        throw new UnauthorizedException('El email del token no está verificado');
+      }
+      if (!googleId) {
+        throw new UnauthorizedException('Token de Google sin identificador de usuario');
+      }
+
+      const normalizedEmail = email.toLowerCase().trim();
+
+      // Find by email or googleId
+      let existingUser = await this.userRepository
+        .createQueryBuilder('user')
+        .where('user.email = :email', { email: normalizedEmail })
+        .orWhere('user.googleId = :googleId', { googleId })
+        .getOne();
+
+      if (existingUser && existingUser.googleId === googleId && existingUser.email !== normalizedEmail) {
+        throw new ConflictException('Ya existe un usuario con este Google ID vinculado a otro email');
+      }
+
+      if (existingUser) {
+        let needsUpdate = false;
+        if (!existingUser.googleId || existingUser.googleId !== googleId) {
+          existingUser.googleId = googleId;
+          needsUpdate = true;
+        }
+        if (name && existingUser.name !== name) {
+          existingUser.name = name;
+          needsUpdate = true;
+        }
+        if (needsUpdate) {
+          await this.userRepository.save(existingUser);
+        }
+
+        const { password: _, ...userWithoutPassword } = existingUser;
+        return { ...userWithoutPassword, isNewUser: false };
+      }
+
+      const newUser = this.userRepository.create({
+        email: normalizedEmail,
+        name: name || normalizedEmail.split('@')[0],
+        googleId,
+        roles: Role.USER,
+        password: null,
+      });
+      const savedUser = await this.userRepository.save(newUser);
+      const { password: _, ...userWithoutPassword } = savedUser;
+      return { ...userWithoutPassword, isNewUser: true };
+    } catch (error) {
+      if (error instanceof HttpException) {
+        throw error;
+      }
+      console.error('Error verificando idToken de Google:', error);
+      throw new InternalServerErrorException('Error interno del servidor');
     }
   }
 

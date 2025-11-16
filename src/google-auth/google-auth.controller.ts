@@ -3,7 +3,7 @@ import { AuthGuard } from '@nestjs/passport';
 import { Request, Response } from 'express';
 import { ConfigService } from '@nestjs/config';
 import { GoogleAuthService } from './google-auth.service';
-import { GoogleAuthDto } from './dto/google-auth.dto';
+import { GoogleAuthDto, MobileGoogleAuthDto } from './dto/google-auth.dto';
 
 @Controller('auth/google')
 export class GoogleAuthController {
@@ -30,6 +30,31 @@ export class GoogleAuthController {
       }
       
       console.error('Google auth error:', error);
+      throw new HttpException(
+        'Error interno del servidor',
+        HttpStatus.INTERNAL_SERVER_ERROR
+      );
+    }
+  }
+
+  @Post('mobile')
+  async googleAuthMobile(@Body(ValidationPipe) body: MobileGoogleAuthDto) {
+    try {
+      const result = await this.googleAuthService.authenticateWithGoogleIdToken(body.idToken);
+
+      return {
+        success: true,
+        data: result,
+        message: result.isNewUser
+          ? 'Usuario creado exitosamente'
+          : 'Usuario encontrado exitosamente'
+      };
+    } catch (error) {
+      if (error instanceof HttpException) {
+        throw error;
+      }
+
+      console.error('Google mobile auth error:', error);
       throw new HttpException(
         'Error interno del servidor',
         HttpStatus.INTERNAL_SERVER_ERROR

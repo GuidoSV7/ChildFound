@@ -6,6 +6,7 @@ import { IpfsService } from './ipfs.service';
 @Module({
   controllers: [NftController],
   providers: [NftService, IpfsService],
+  exports: [NftService, IpfsService]
 })
 export class NftModule {}
 

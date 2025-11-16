@@ -1,16 +1,16 @@
-import { Entity, PrimaryGeneratedColumn, ManyToOne, JoinColumn, Column, Unique } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn, Unique } from 'typeorm';
 import { User } from 'src/auth/entities/user.entity';
 import { Topic } from 'src/topics/entities/topic.entity';
 
-export enum UserTopicStatus {
+export enum CertificationStatus {
   PENDING = 'pending',
   IN_PROGRESS = 'in_progress',
   COMPLETED = 'completed',
 }
 
-@Entity('user_topics')
+@Entity('certifications')
 @Unique(['userId', 'topicId'])
-export class UserTopic {
+export class Certification {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
@@ -23,15 +23,19 @@ export class UserTopic {
   @Column('int', { default: 0 })
   progressPercentage: number;
 
-  @Column('text', { default: UserTopicStatus.PENDING })
-  status: UserTopicStatus;
+  @Column('text', { default: CertificationStatus.PENDING })
+  status: CertificationStatus;
 
-  @ManyToOne(() => User, (user) => user.userTopics, { onDelete: 'CASCADE' })
+  @Column('text', { nullable: true })
+  urlImage?: string;
+
+  @ManyToOne(() => User, (user) => user.certifications, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'userId' })
   user: User;
 
-  @ManyToOne(() => Topic, (topic) => topic.userTopics, { onDelete: 'CASCADE' })
+  @ManyToOne(() => Topic, (topic) => topic.certifications, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'topicId' })
   topic: Topic;
 }
+
 

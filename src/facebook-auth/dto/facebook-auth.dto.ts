@@ -1,9 +1,9 @@
 import { IsEmail, IsString, IsNotEmpty, IsOptional, IsUrl } from 'class-validator';
 
-export class GoogleAuthDto {
+export class FacebookAuthDto {
   @IsString()
   @IsNotEmpty()
-  googleId: string;
+  facebookId: string;
 
   @IsEmail()
   @IsNotEmpty()
@@ -18,7 +18,13 @@ export class GoogleAuthDto {
   picture?: string;
 }
 
-export class GoogleAuthResponseDto {
+export class MobileFacebookAuthDto {
+  @IsString()
+  @IsNotEmpty()
+  accessToken: string;
+}
+
+export class FacebookAuthResponseDto {
   success: boolean;
   data: {
     id: string;
@@ -30,13 +36,4 @@ export class GoogleAuthResponseDto {
   message: string;
 }
 
-export class GoogleCallbackDto {
-  @IsString()
-  token: string;
-}
 
-export class MobileGoogleAuthDto {
-  @IsString()
-  @IsNotEmpty()
-  idToken: string;
-}

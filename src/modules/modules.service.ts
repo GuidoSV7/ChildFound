@@ -28,14 +28,14 @@ export class ModulesService {
     return this.moduleRepository.find({
       take: limit,
       skip: offset,
-      relations: ['users', 'moduleTopics', 'moduleTopics.topic']
+      relations: ['users', 'moduleTopics', 'moduleTopics.topic', 'fase']
     });
   }
 
   async findOne(id: string) {
     const module = await this.moduleRepository.findOne({
       where: { id },
-      relations: ['users', 'moduleTopics', 'moduleTopics.topic']
+      relations: ['users', 'moduleTopics', 'moduleTopics.topic', 'fase']
     });
 
     if (!module) {

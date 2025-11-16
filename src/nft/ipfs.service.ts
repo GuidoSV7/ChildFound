@@ -30,6 +30,20 @@ export class IpfsService {
     // res.IpfsHash is a CID (v1 or v0). Build ipfs:// URI
     return `ipfs://${res.IpfsHash}`;
   }
+
+  async pinFileBuffer(buffer: Buffer, filename = 'certificate.png'): Promise<string> {
+    const { Readable } = require('stream');
+    const readable = new Readable();
+    readable._read = () => {};
+    readable.push(buffer);
+    readable.push(null);
+    // Pinata SDK expects a readable stream
+    const options = {
+      pinataMetadata: { name: filename },
+    };
+    const res = await this.pinata.pinFileToIPFS(readable, options);
+    return `ipfs://${res.IpfsHash}`;
+  }
 }
 
 
